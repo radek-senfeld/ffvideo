@@ -1,0 +1,4 @@
+
+
+ - detect memory leak at playing .avi
+ - correct avi decoding
