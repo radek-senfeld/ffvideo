@@ -4,12 +4,13 @@ ver 0.1.0
  - more testing
  - add croping
  - review api, make it more clear and evident.
+ - timestamp of frame
 
 ver 0.2.0
  - improve build system
- - make possible to simple build on windows, ubuntu 8.10, ubuntu 9.04, fedora 9, 
+ - make possible to build on windows, ubuntu 8.10, ubuntu 9.04, fedora 9, 
    fedora 10, fedora 11 (cythnon/pyrex?, setuptools?)
- - add description, more info in setup.py (upload2pypi)
+ - add description, more info at setup.py (upload2pypi)
 
 ver 0.3.0
  - improve videoformat supporting
