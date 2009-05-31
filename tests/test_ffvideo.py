@@ -85,7 +85,7 @@ def test_frames_getting():
 #    assert f.frameno == 100
     
     f = vs.get_frame_no(100)
-    f = vs.get_frame_at(1)
+    f = vs.get_frame_at_sec(1)
     assert f.timestamp - 1 < 0.1
     f = vs.get_frame_at_pts(133000)
     

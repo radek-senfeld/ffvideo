@@ -24,17 +24,13 @@ cdef extern from "Python.h":
     object PyBuffer_FromObject(object, int, int)
     int PyObject_AsCharBuffer(object, char **, Py_ssize_t *) except -1
 
-# av_register_all at first import 
-__av_registred = False
-if not __av_registred:
-    av_register_all()
-    av_log_set_level(AV_LOG_ERROR);
-    __av_registred = True
+av_register_all()
+av_log_set_level(AV_LOG_ERROR);
 
-class DecoderError (IOError):
+class DecoderError(IOError):
     pass
 
-class FFVideoError (Exception):
+class FFVideoError(Exception):
     pass
 
 class NoMoreData(StopIteration):
@@ -294,7 +290,7 @@ cdef class VideoStream:
                                       self.stream.r_frame_rate.num)
         return self.get_frame_at_pts(gpts)
     
-    def get_frame_at(self, float timestamp):
+    def get_frame_at_sec(self, float timestamp):
         return self.get_frame_at_pts(<int64_t>(timestamp * AV_TIME_BASE))
     
     def get_frame_at_pts(self, int64_t pts):
