@@ -146,10 +146,8 @@ cdef extern from "libavcodec/avcodec.h":
     AVCodec *avcodec_find_decoder(int id)
     int avcodec_open(AVCodecContext *avctx, AVCodec *codec)
     int avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture,
-                         int *got_picture_ptr,
-                         char *buf, int buf_size)
-    int avpicture_fill(AVPicture *picture, void *ptr,
-                   int pix_fmt, int width, int height)
+                         int *got_picture_ptr, char *buf, int buf_size) nogil
+    int avpicture_fill(AVPicture *picture, void *ptr, int pix_fmt, int width, int height) nogil
     AVFrame *avcodec_alloc_frame()
     int avpicture_get_size(int pix_fmt, int width, int height)
     int avpicture_layout(AVPicture* src, int pix_fmt, int width, int height,
@@ -262,10 +260,10 @@ cdef extern from "libavformat/avformat.h":
                  char *url,
                  int is_output)
     void av_free_packet(AVPacket *pkt)
-    int av_read_packet(AVFormatContext *s, AVPacket *pkt)
-    int av_read_frame(AVFormatContext *s, AVPacket *pkt)
-    int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp, int flags)
-    int av_seek_frame_binary(AVFormatContext *s, int stream_index, int64_t target_ts, int flags)
+    int av_read_packet(AVFormatContext *s, AVPacket *pkt) nogil
+    int av_read_frame(AVFormatContext *s, AVPacket *pkt) nogil
+    int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp, int flags) nogil
+    int av_seek_frame_binary(AVFormatContext *s, int stream_index, int64_t target_ts, int flags) nogil
 
     void av_parser_close(AVCodecParserContext *s)
 
@@ -300,6 +298,6 @@ cdef extern from "libswscale/swscale.h":
                     SwsFilter *srcFilter, SwsFilter *dstFilter, double *param)
 
     int sws_scale(SwsContext *context, uint8_t* src[], int srcStride[], int srcSliceY,
-                    int srcSliceH, uint8_t* dst[], int dstStride[])
+                    int srcSliceH, uint8_t* dst[], int dstStride[]) nogil
 
 

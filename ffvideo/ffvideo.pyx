@@ -210,10 +210,10 @@ cdef class VideoStream:
 #            print "pts=%d dts=%d stream_index=%d duration=%d size=%d, flags=0x%08X" % \
 #                (self.packet.pts, self.packet.dts, self.packet.stream_index,
 #                 self.packet.duration, self.packet.size, self.packet.flags) 
-            
-            ret = avcodec_decode_video(self.codec_ctx, self.frame, 
-                                       &frame_finished, 
-                                       self.packet.data, self.packet.size)
+            with nogil:
+                ret = avcodec_decode_video(self.codec_ctx, self.frame, 
+                                           &frame_finished, 
+                                           self.packet.data, self.packet.size)
             if ret < 0:
                 # ???????? 
                 if self.packet.data:
@@ -273,9 +273,10 @@ cdef class VideoStream:
             self.frame_width, self.frame_height, self._frame_mode,
             SWS_BICUBIC, NULL, NULL, NULL) 
         
-        sws_scale(img_convert_ctx,
-            self.frame.data, self.frame.linesize, 0, self.height,
-            scaled_frame.data, scaled_frame.linesize)
+        with nogil:
+            sws_scale(img_convert_ctx,
+                self.frame.data, self.frame.linesize, 0, self.height,
+                scaled_frame.data, scaled_frame.linesize)
         
         sws_freeContext(img_convert_ctx)
         av_free(scaled_frame)
