@@ -362,7 +362,10 @@ cdef class VideoFrame:
         self.frameno = frameno
         
     def image(self):
-        from PIL import Image
+        try:
+            import Image
+        except ImportError:
+            from PIL import Image
         return Image.frombuffer(self.mode, self.size, self.data, 'raw', self.mode, 0, 1)
     
     def ndarray(self):
