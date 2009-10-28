@@ -1,0 +1,3 @@
+setup.py
+ffvideo/ffmpeg.pxd
+ffvideo/ffvideo.pyx
