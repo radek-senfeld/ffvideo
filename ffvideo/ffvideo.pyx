@@ -207,7 +207,7 @@ cdef class VideoStream:
                     av_free_packet(&self.packet)
                     raise NoMoreData("Unable to read frame [%d]" % ret)
                 
-#            print "pts=%d dts=%d stream_index=%d duration=%d size=%d, flags=0x%08X" % \
+#            print "packet>> pts=%d dts=%d stream_index=%d duration=%d size=%d, flags=0x%08X" % \
 #                (self.packet.pts, self.packet.dts, self.packet.stream_index,
 #                 self.packet.duration, self.packet.size, self.packet.flags) 
             with nogil:
@@ -226,7 +226,7 @@ cdef class VideoStream:
         else:
             pts = self.packet.pts
 
-#        print "pict_type=%s" % "*IPBSip"[self.frame.pict_type],
+#        print "frame>> pict_type=%s" % "*IPBSip"[self.frame.pict_type],
 #        print "pts=%s, dts=%s, frameno=%s" % (pts, self.packet.dts, self.frameno),
 #        print "ts=%.3f" % av_q2d(av_mul_q(AVRational(pts-self.stream.start_time, 1), self.stream.time_base))
         
@@ -255,6 +255,7 @@ cdef class VideoStream:
         cdef AVFrame *scaled_frame
         cdef Py_ssize_t buflen
         cdef char *data_ptr
+        cdef SwsContext *img_convert_ctx
         
         scaled_frame = avcodec_alloc_frame()
         if scaled_frame == NULL:
@@ -265,21 +266,21 @@ cdef class VideoStream:
         data = PyBuffer_New(buflen)
         PyObject_AsCharBuffer(data, &data_ptr, &buflen)
         
-        avpicture_fill(<AVPicture *>scaled_frame, <uint8_t *>data_ptr, 
+        with nogil:
+            avpicture_fill(<AVPicture *>scaled_frame, <uint8_t *>data_ptr, 
                        self._frame_mode, self.frame_width, self.frame_height)
         
-        cdef SwsContext *img_convert_ctx = sws_getContext(
-            self.width, self.height, self.codec_ctx.pix_fmt,
-            self.frame_width, self.frame_height, self._frame_mode,
-            SWS_BICUBIC, NULL, NULL, NULL) 
+            img_convert_ctx = sws_getContext(
+                self.width, self.height, self.codec_ctx.pix_fmt,
+                self.frame_width, self.frame_height, self._frame_mode,
+                SWS_BICUBIC, NULL, NULL, NULL) 
         
-        with nogil:
             sws_scale(img_convert_ctx,
                 self.frame.data, self.frame.linesize, 0, self.height,
                 scaled_frame.data, scaled_frame.linesize)
         
-        sws_freeContext(img_convert_ctx)
-        av_free(scaled_frame)
+            sws_freeContext(img_convert_ctx)
+            av_free(scaled_frame)
             
         return VideoFrame(data, self.frame_size, self.frame_mode, 
                           timestamp=<double>self.frame.pts/<double>AV_TIME_BASE, 
