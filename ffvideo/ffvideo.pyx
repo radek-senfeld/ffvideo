@@ -35,6 +35,10 @@ class FFVideoError(Exception):
 
 class NoMoreData(StopIteration):
     pass
+    
+FAST_BILINEAR = SWS_FAST_BILINEAR
+BILINEAR = SWS_BILINEAR
+BICUBIC = SWS_BICUBIC
 
 cdef class VideoStream:
     """Class represents video stream"""
@@ -66,13 +70,16 @@ cdef class VideoStream:
     cdef readonly int frame_width
     cdef readonly int frame_height
     cdef public object frame_mode
+    cdef public int scale_mode  
 
-    def __cinit__(self, filename, frame_size=(None, None), frame_mode='RGB'):
+    def __cinit__(self, filename, frame_size=(None, None), frame_mode='RGB', 
+                  scale_mode=BICUBIC):
         self.format_ctx = NULL
         self.codec_ctx = NULL
         self.frame = avcodec_alloc_frame()
 
-    def __init__(self, filename, frame_size=(None, None), frame_mode='RGB'):
+    def __init__(self, filename, frame_size=(None, None), frame_mode='RGB', 
+                 scale_mode=SWS_BICUBIC):
         cdef int ret
         cdef int i
         
@@ -91,6 +98,8 @@ cdef class VideoStream:
             'RGB': PIX_FMT_RGB24,
             'L': PIX_FMT_GRAY8
             }[self.frame_mode]
+
+        self.scale_mode = scale_mode
         
         cdef char *cfilename = filename 
 
@@ -273,7 +282,7 @@ cdef class VideoStream:
             img_convert_ctx = sws_getContext(
                 self.width, self.height, self.codec_ctx.pix_fmt,
                 self.frame_width, self.frame_height, self._frame_mode,
-                SWS_BICUBIC, NULL, NULL, NULL) 
+                self.scale_mode, NULL, NULL, NULL) 
         
             sws_scale(img_convert_ctx,
                 self.frame.data, self.frame.linesize, 0, self.height,

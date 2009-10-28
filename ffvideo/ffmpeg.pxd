@@ -49,8 +49,8 @@ cdef extern from "libavutil/avutil.h":
         PIX_FMT_NB,
 
 cdef extern from "libavutil/avutil.h":
-    void av_free(void *)
-    void av_freep(void *)
+    void av_free(void *) nogil
+    void av_freep(void *) nogil
 
 cdef extern from "libavutil/log.h":
     int AV_LOG_VERBOSE
@@ -292,10 +292,10 @@ cdef extern from "libswscale/swscale.h":
     struct SwsContext:
         pass
 
-    void sws_freeContext(SwsContext *swsContext)
+    void sws_freeContext(SwsContext *swsContext) nogil
 
     SwsContext *sws_getContext(int srcW, int srcH, int srcFormat, int dstW, int dstH, int dstFormat, int flags,
-                    SwsFilter *srcFilter, SwsFilter *dstFilter, double *param)
+                    SwsFilter *srcFilter, SwsFilter *dstFilter, double *param) nogil
 
     int sws_scale(SwsContext *context, uint8_t* src[], int srcStride[], int srcSliceY,
                     int srcSliceH, uint8_t* dst[], int dstStride[]) nogil

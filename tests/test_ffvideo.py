@@ -10,7 +10,7 @@ def test_import():
         raise AssertionError, "can't import pyffmpeg module"
 
 def test_open():
-    from ffvideo import VideoStream, DecoderError
+    from ffvideo import VideoStream, DecoderError, FAST_BILINEAR, BILINEAR
     try:
         VideoStream('non-existing-file')
     except IOError:
@@ -24,19 +24,21 @@ def test_open():
         pass
     else:
         raise AssertionError, "expected DecodeError"
-        
+
 
     VideoStream(v0)
     VideoStream(v0, frame_size=(128, 128), frame_mode='L')
     VideoStream(v0, frame_size=(None, 128), frame_mode='L')
-    
+    VideoStream(v0, frame_size=(None, 128), frame_mode='L', scale_mode=BILINEAR)
+    VideoStream(v0, scale_mode=FAST_BILINEAR, frame_size=(None, 128))
+
     try:
         VideoStream(v0, frame_size=(None, 128, 33), frame_mode='L')
     except ValueError:
         pass
     else:
         raise AssertionErrror, "expected ValueError"
-    
+
     try:
         VideoStream(v0, frame_size=344, frame_mode='L')
     except ValueError:
@@ -71,24 +73,24 @@ def test_videoinfo():
 
 def test_frames_getting():
     from ffvideo import VideoStream
-    
+
     vs = VideoStream(v0)
 
     f1 = vs.current() # first frame
     f2 = vs.next()
     assert f2.timestamp > f1.timestamp
-    
+
     f = vs[0] # first frame
     assert f.frameno == 0
     f = vs.get_frame_no(100)
 #    f = vs[100]
 #    assert f.frameno == 100
-    
+
     f = vs.get_frame_no(100)
     f = vs.get_frame_at_sec(1)
     assert f.timestamp - 1 < 0.1
     f = vs.get_frame_at_pts(133000)
-    
+
     assert f.width == vs.frame_width
     assert f.height == vs.frame_height
     assert f.mode == vs.frame_mode
@@ -99,5 +101,4 @@ def test_frames_iterator():
     frame_iter = iter(vs)
     frame = frame_iter.next()
     assert frame.timestamp == 0
-    
-    
+
