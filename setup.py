@@ -11,7 +11,7 @@ setup(
         libraries=["avformat", "avcodec", "swscale"])
     ],
     cmdclass={'build_ext': build_ext},
-    version="0.0.5dev2",
+    version="0.0.6dev1",
 #    test_suite='nose.collector',
 #    tests_require=['nose'],
     maintainer="Zakhar Zibarov",

@@ -27,10 +27,13 @@ cdef extern from "Python.h":
 av_register_all()
 av_log_set_level(AV_LOG_ERROR);
 
-class DecoderError(IOError):
+class FFVideoError(Exception):
     pass
 
-class FFVideoError(Exception):
+class DecoderError(FFVideoError):
+    pass
+
+class FFVideoValueError(FFVideoError, ValueError):
     pass
 
 class NoMoreData(StopIteration):
@@ -39,6 +42,13 @@ class NoMoreData(StopIteration):
 FAST_BILINEAR = SWS_FAST_BILINEAR
 BILINEAR = SWS_BILINEAR
 BICUBIC = SWS_BICUBIC
+
+
+FRAME_MODES = {
+    'RGB': PIX_FMT_RGB24,
+    'L': PIX_FMT_GRAY8,
+    'YUV420P': PIX_FMT_YUV420P
+}
 
 cdef class VideoStream:
     """Class represents video stream"""
@@ -55,7 +65,8 @@ cdef class VideoStream:
     cdef AVFrame *frame
     cdef int64_t _frame_pts
     
-    cdef int _frame_mode
+    cdef int ffmpeg_frame_mode
+    cdef object __frame_mode
 
     # public
     cdef readonly object filename
@@ -66,44 +77,65 @@ cdef class VideoStream:
     cdef readonly int width
     cdef readonly int height
 
-    cdef readonly object frame_size
     cdef readonly int frame_width
     cdef readonly int frame_height
-    cdef public object frame_mode
-    cdef public int scale_mode  
 
-    def __cinit__(self, filename, frame_size=(None, None), frame_mode='RGB', 
+    cdef public int scale_mode
+
+    property frame_mode:
+        def __set__(self, mode):
+            if mode not in FRAME_MODES:
+                raise FFVideoValueError("Not supported frame mode")
+            self.__frame_mode = mode
+            self.ffmpeg_frame_mode = FRAME_MODES[mode]
+
+        def __get__(self):
+            return self.__frame_mode
+
+    property frame_size:
+        def __set__(self, size):
+            try:
+                fw, fh = size
+            except (TypeError, ValueError), e:
+                raise FFVideoValueError("frame_size must be a tuple (int, int)")
+            if fw is None and fh is None:
+                raise FFVideoValueError("both width and height cannot be None")
+
+            if fw is None:
+                self.frame_width = round(fh * <float>self.width / self.height / 2.0) * 2
+                self.frame_height = round(fh / 2.0) * 2
+            elif fh is None:
+                self.frame_width = round(fw / 2.0) * 2
+                self.frame_height = round(fw * <float>self.height / self.width / 2.0) * 2
+            else:
+                self.frame_width = round(fw / 2.0) * 2
+                self.frame_height = round(fh / 2.0) * 2
+
+        def __get__(self):
+            return (self.frame_width, self.frame_height)
+
+    def __cinit__(self, filename, frame_size=None, frame_mode='RGB', 
                   scale_mode=BICUBIC):
         self.format_ctx = NULL
         self.codec_ctx = NULL
         self.frame = avcodec_alloc_frame()
-
-    def __init__(self, filename, frame_size=(None, None), frame_mode='RGB', 
-                 scale_mode=SWS_BICUBIC):
-        cdef int ret
-        cdef int i
-        
-        self.filename = filename
         self.duration = 0
         self.width = 0
         self.height = 0
         self.frameno = 0
         self.streamno = -1
 
-        if frame_mode not in ('RGB', 'L'):
-            raise FFVideoError("Not supported frame mode")
-        
+    def __init__(self, filename, frame_size=None, frame_mode='RGB', 
+                 scale_mode=BICUBIC):
+        cdef int ret
+        cdef int i
+
+        self.filename = filename
+
         self.frame_mode = frame_mode
-        self._frame_mode = {
-            'RGB': PIX_FMT_RGB24,
-            'L': PIX_FMT_GRAY8
-            }[self.frame_mode]
-
         self.scale_mode = scale_mode
-        
-        cdef char *cfilename = filename 
 
-        ret = av_open_input_file(&self.format_ctx, cfilename, NULL, 0, NULL)
+        ret = av_open_input_file(&self.format_ctx, filename, NULL, 0, NULL)
         if ret != 0:
             raise DecoderError("Unable to open file %s" % filename)
 
@@ -118,10 +150,7 @@ cdef class VideoStream:
         else:
             raise DecoderError("Unable to find video stream")
 
-#        print "%x" % self.format_ctx.flags
-        
         self.stream = self.format_ctx.streams[self.streamno]
-        
         self.framerate = av_q2d(self.stream.r_frame_rate)
 
         if self.stream.duration == 0 or self.stream.duration == AV_NOPTS_VALUE:
@@ -139,10 +168,10 @@ cdef class VideoStream:
         # bitstreams where frame boundaries can fall in the middle of packets
         if self.codec.capabilities & CODEC_CAP_TRUNCATED:
             self.codec_ctx.flags |= CODEC_FLAG_TRUNCATED
-            
-        if frame_mode in ('L', 'F'):
+
+        if self.frame_mode in ('L', 'F'):
             self.codec_ctx.flags |= CODEC_FLAG_GRAY
-            
+
         self.width = self.codec_ctx.width
         self.height = self.codec_ctx.height
 
@@ -151,40 +180,25 @@ cdef class VideoStream:
         if ret < 0:
             raise DecoderError("Unable to open codec")
 
-        self.codec_name = self.codec.name
-        
         # for some videos, avcodec_open will set these to 0,
         # so we'll only be using it if it is not 0, otherwise,
         # we rely on the resolution provided by the header;
         if self.codec_ctx.width != 0 and self.codec_ctx.height !=0:
             self.width = self.codec_ctx.width
             self.height = self.codec_ctx.height
-        
+
         if self.width <= 0 or self.height <= 0:
             raise DecoderError("Video width/height is 0; cannot decode")
-        
-        try:
-            fw, fh = frame_size
-        except (TypeError, ValueError), e:
-            raise ValueError("frame_size must be a tuple (int, int)")
 
-        if not fw and not fh:
-            self.frame_width = self.width
-            self.frame_height = self.height
-        elif not fw:
-            self.frame_width = round(fh * <float>self.width / self.height)
-            self.frame_height = round(fh)
-        elif not fh:
-            self.frame_width = round(fw)
-            self.frame_height = round(fw * <float>self.height / self.width)
+        if frame_size is None:
+            self.frame_size = (self.width, self.height)
         else:
-            self.frame_width = round(fw)
-            self.frame_height = round(fh)
+            self.frame_size = frame_size
 
-        self.frame_size = (self.frame_width, self.frame_height)
-        
+        self.codec_name = self.codec.name
+
         self.__decode_next_frame()
-        
+
     def __dealloc__(self):
         if self.packet.data:
             av_free_packet(&self.packet)
@@ -201,7 +215,7 @@ cdef class VideoStream:
         av_log_set_level(AV_LOG_VERBOSE);
         dump_format(self.format_ctx, 0, self.filename, 0);
         av_log_set_level(AV_LOG_ERROR);
-    
+
     def __decode_next_frame(self):
         cdef int ret
         cdef int frame_finished = 0
@@ -215,7 +229,7 @@ cdef class VideoStream:
                     # ??????????
                     av_free_packet(&self.packet)
                     raise NoMoreData("Unable to read frame [%d]" % ret)
-                
+
 #            print "packet>> pts=%d dts=%d stream_index=%d duration=%d size=%d, flags=0x%08X" % \
 #                (self.packet.pts, self.packet.dts, self.packet.stream_index,
 #                 self.packet.duration, self.packet.size, self.packet.flags) 
@@ -247,7 +261,7 @@ cdef class VideoStream:
                                       self.stream.time_base, AV_TIME_BASE_Q)
         self.frame.display_picture_number = <int>av_q2d(
             av_mul_q(av_mul_q(AVRational(pts - self.stream.start_time, 1), 
-                              self.stream.r_frame_rate), 
+                              self.stream.r_frame_rate),
                      self.stream.time_base)
         )
         return self.frame.pts
@@ -270,18 +284,18 @@ cdef class VideoStream:
         if scaled_frame == NULL:
             raise MemoryError("Unable to allocate new frame")
         
-        buflen = avpicture_get_size(self._frame_mode, 
+        buflen = avpicture_get_size(self.ffmpeg_frame_mode, 
                                     self.frame_width, self.frame_height)
         data = PyBuffer_New(buflen)
         PyObject_AsCharBuffer(data, &data_ptr, &buflen)
         
         with nogil:
             avpicture_fill(<AVPicture *>scaled_frame, <uint8_t *>data_ptr, 
-                       self._frame_mode, self.frame_width, self.frame_height)
+                       self.ffmpeg_frame_mode, self.frame_width, self.frame_height)
         
             img_convert_ctx = sws_getContext(
                 self.width, self.height, self.codec_ctx.pix_fmt,
-                self.frame_width, self.frame_height, self._frame_mode,
+                self.frame_width, self.frame_height, self.ffmpeg_frame_mode,
                 self.scale_mode, NULL, NULL, NULL) 
         
             sws_scale(img_convert_ctx,
@@ -357,34 +371,40 @@ cdef class VideoFrame:
     cdef readonly int height
     cdef readonly object size
     cdef readonly object mode
-    
+
     cdef readonly int frameno
     cdef readonly double timestamp
-    
+
     cdef readonly object data
-    
+
     def __init__(self, data, size, mode, timestamp=0, frameno=0):
         self.data = data
         self.width, self.height = size
         self.size = size
         self.mode = mode
-        self.timestamp = timestamp        
+        self.timestamp = timestamp
         self.frameno = frameno
-        
+
     def image(self):
+        if self.mode not in ('RGB', 'L', 'F'):
+            raise FFVideoError('Cannot represent this color mode into PIL Image')
+
         try:
             import Image
         except ImportError:
             from PIL import Image
         return Image.frombuffer(self.mode, self.size, self.data, 'raw', self.mode, 0, 1)
-    
+
     def ndarray(self):
+        if self.mode not in ('RGB', 'L'):
+            raise FFVideoError('Cannot represent this color mode into PIL Image')
+
         import numpy
         if self.mode == 'RGB':
             shape = (self.height, self.width, 3)
         elif self.mode == 'L':
             shape = (self.height, self.width)
         return numpy.ndarray(buffer=self.data, dtype=numpy.uint8, shape=shape)
-            
-            
-    
+
+
+

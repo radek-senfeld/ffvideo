@@ -13,7 +13,7 @@ def test_open():
     from ffvideo import VideoStream, DecoderError, FAST_BILINEAR, BILINEAR
     try:
         VideoStream('non-existing-file')
-    except IOError:
+    except DecoderError:
         pass
     else:
         raise AssertionError, "expected IOError"
@@ -68,7 +68,9 @@ def test_videoinfo():
 #    raise AssertionError, "(%d, %d)" % (vs.frame_width, vs.frame_height)
     assert vs.width != vs.frame_width
     assert vs.height != vs.frame_height
-    assert vs.frame_height == 97
+
+    assert vs.frame_width == 130
+    assert vs.frame_height == 96
 
 
 def test_frames_getting():
