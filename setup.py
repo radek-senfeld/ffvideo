@@ -1,6 +1,4 @@
-
-from distutils.core import setup
-from distutils.extension import Extension
+from distutils.core import setup, Extension
 from Cython.Distutils import build_ext
 
 setup(
@@ -11,7 +9,7 @@ setup(
         libraries=["avformat", "avcodec", "swscale"])
     ],
     cmdclass={'build_ext': build_ext},
-    version="0.0.6dev1",
+    version="0.0.6dev2",
 #    test_suite='nose.collector',
 #    tests_require=['nose'],
     maintainer="Zakhar Zibarov",
