@@ -9,10 +9,10 @@ setup(
         libraries=["avformat", "avcodec", "swscale"])
     ],
     cmdclass={'build_ext': build_ext},
-    version="0.0.6dev2",
+    version="0.0.6dev3",
 #    test_suite='nose.collector',
 #    tests_require=['nose'],
-    maintainer="Zakhar Zibarov",
+    author="Zakhar Zibarov",
     author_email="zakhar.zibarov@gmail.com",
     url="http://bitbucket.org/zakhar/ffvideo/",
 )

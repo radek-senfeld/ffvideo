@@ -202,6 +202,7 @@ cdef class VideoStream:
     def __dealloc__(self):
         if self.packet.data:
             av_free_packet(&self.packet)
+        
         av_free(self.frame)
         if self.codec:
             avcodec_close(self.codec_ctx)
@@ -224,6 +225,9 @@ cdef class VideoStream:
         while frame_finished == 0:
             self.packet.stream_index = -1
             while self.packet.stream_index != self.streamno:
+                if self.packet.data:
+                    av_free_packet(&self.packet) # free data owned by unused stream
+
                 ret = av_read_frame(self.format_ctx, &self.packet)
                 if ret < 0:
                     # ??????????
