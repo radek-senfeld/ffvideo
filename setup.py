@@ -1,24 +1,30 @@
 import os
 from distutils.core import setup, Extension
-from Cython.Distutils import build_ext
+
+try:
+    from Cython.Distutils import build_ext
+    sources = ["ffvideo/ffvideo.pyx"]
+    cmdclass = {'build_ext': build_ext}
+except ImportError:
+    sources = ["ffvideo/ffvideo.c"]
+    cmdclass = {}
 
 def read(fn):
     return open(os.path.join(os.path.dirname(__file__), fn)).read()
 
-VERSION = "0.0.7"
+VERSION = "0.0.8"
 
 setup(
     name="FFVideo",
     version=VERSION,
     description="FFVideo is a python extension makes possible to access to decoded frames at two format: PIL.Image or numpy.ndarray.",
     long_description=read("README.txt"),
-
     ext_modules=[
-        Extension("ffvideo", ["ffvideo/ffvideo.pyx"],
-        include_dirs=["/usr/include/ffmpeg"],
-        libraries=["avformat", "avcodec", "swscale"])
+        Extension("ffvideo", sources,
+                  include_dirs=["/usr/include/ffmpeg"],
+                  libraries=["avformat", "avcodec", "swscale"])
     ],
-    cmdclass={'build_ext': build_ext},
+    cmdclass=cmdclass,
 #    test_suite='nose.collector',
 #    tests_require=['nose'],
     author="Zakhar Zibarov",
