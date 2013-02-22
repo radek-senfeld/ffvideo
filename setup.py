@@ -12,7 +12,7 @@ except ImportError:
 def read(fn):
     return open(os.path.join(os.path.dirname(__file__), fn)).read()
 
-VERSION = "0.0.11"
+VERSION = "0.0.12"
 
 setup(
     name="FFVideo",

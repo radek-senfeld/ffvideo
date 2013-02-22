@@ -6,15 +6,15 @@ Installation
 
 In Ubuntu you can install the above using the following commands::
 
-    sudo aptitude install ffmpeg cython
+    sudo aptitude install python-dev cython libavcodec-dev libavformat-dev libswscale-dev
 
-    tar -xf FFVideo-0.0.9.tar.gz
-    cd FFVideo-0.0.9
+    tar -xf FFVideo-0.0.12.tar.gz
+    cd FFVideo-0.0.12
     python setup.py install
 
 or::
 
-    sudo aptitude install ffmpeg python-pip
+    sudo aptitude install python-dev cython libavcodec-dev libavformat-dev libswscale-dev python-pip
     pip install ffvideo
 
 How to use
