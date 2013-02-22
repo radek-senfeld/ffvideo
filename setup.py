@@ -1,6 +1,5 @@
 import os
 from distutils.core import setup, Extension
-#from setuptools import setup, Extension
 
 try:
     from Cython.Distutils import build_ext
@@ -13,7 +12,7 @@ except ImportError:
 def read(fn):
     return open(os.path.join(os.path.dirname(__file__), fn)).read()
 
-VERSION = "0.0.10"
+VERSION = "0.0.11"
 
 setup(
     name="FFVideo",
@@ -26,8 +25,6 @@ setup(
                   libraries=["avformat", "avcodec", "swscale"])
     ],
     cmdclass=cmdclass,
-    #test_suite='nose.collector',
-    #tests_require=['nose'],
     author="Zakhar Zibarov",
     author_email="zakhar.zibarov@gmail.com",
     url="http://bitbucket.org/zakhar/ffvideo/",
