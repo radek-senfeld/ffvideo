@@ -19,8 +19,6 @@ cdef extern from "libavutil/mathematics.h":
     int64_t av_rescale(int64_t a, int64_t b, int64_t c)
     int64_t av_rescale_q(int64_t a, AVRational bq, AVRational cq)
 
-
-
 cdef extern from "libavutil/avutil.h":
     cdef enum PixelFormat:
         PIX_FMT_NONE= -1,
@@ -48,7 +46,14 @@ cdef extern from "libavutil/avutil.h":
         PIX_FMT_UYVY411,   #< Packed pixel, Cb Y0 Y1 Cr Y2 Y3
         PIX_FMT_NB,
 
-cdef extern from "libavutil/avutil.h":
+    struct AVDictionaryEntry:
+        char *key
+        char *value
+
+    struct AVDictionary:
+        int count
+        AVDictionaryEntry *elems
+
     void av_free(void *) nogil
     void av_freep(void *) nogil
 
@@ -86,6 +91,14 @@ cdef extern from "libavcodec/avcodec.h":
         AVDISCARD_NONKEY =  32 # discard all frames except keyframes
         AVDISCARD_ALL    =  48 # discard all
 
+    enum AVMediaType:
+        AVMEDIA_TYPE_UNKNOWN = -1
+        AVMEDIA_TYPE_VIDEO = 0
+        AVMEDIA_TYPE_AUDIO = 1
+        AVMEDIA_TYPE_DATA = 2
+        AVMEDIA_TYPE_SUBTITLE = 3
+        AVMEDIA_TYPE_ATTACHMENT = 4
+        AVMEDIA_TYPE_NB = 5
 
     struct AVCodecContext:
         int max_b_frames
@@ -100,13 +113,6 @@ cdef extern from "libavcodec/avcodec.h":
         int skip_idct
         int skip_frame
         AVRational time_base
-        
-    enum CodecType:
-        CODEC_TYPE_UNKNOWN = -1
-        CODEC_TYPE_VIDEO = 0
-        CODEC_TYPE_AUDIO = 1
-        CODEC_TYPE_DATA = 2
-        CODEC_TYPE_SUBTITLE = 3
 
     struct AVCodec:
         char *name
@@ -144,9 +150,9 @@ cdef extern from "libavcodec/avcodec.h":
         int linesize[4]
 
     AVCodec *avcodec_find_decoder(int id)
-    int avcodec_open(AVCodecContext *avctx, AVCodec *codec)
-    int avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture,
-                         int *got_picture_ptr, char *buf, int buf_size) nogil
+    int avcodec_open2(AVCodecContext *avctx, AVCodec *codec, AVDictionary **options)
+    int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
+                         int *got_picture_ptr, AVPacket *avpkt) nogil
     int avpicture_fill(AVPicture *picture, void *ptr, int pix_fmt, int width, int height) nogil
     AVFrame *avcodec_alloc_frame()
     int avpicture_get_size(int pix_fmt, int width, int height)
@@ -158,8 +164,6 @@ cdef extern from "libavcodec/avcodec.h":
 
     void avcodec_flush_buffers(AVCodecContext *avctx)
     int avcodec_close (AVCodecContext *avctx)
-
-
 
 cdef extern from "libavformat/avformat.h":
     struct AVFrac:
@@ -182,7 +186,7 @@ cdef extern from "libavformat/avformat.h":
         # approximately 3600 or 1800 timer ticks then r_frame_rate will be 50/1
         AVRational r_frame_rate
         void *priv_data
-        # internal data used in av_find_stream_info()
+        # internal data used in avformat_find_stream_info()
         int64_t codec_info_duration
         int codec_info_nb_frames
         # encoding: PTS generation when outputing stream
@@ -245,17 +249,12 @@ cdef extern from "libavformat/avformat.h":
         int index_built
         int flags
 
-
-    struct AVFormatParameters:
-        pass
-
-    int av_open_input_file(AVFormatContext **ic_ptr, char *filename,
+    int avformat_open_input(AVFormatContext **ic_ptr, char *filename,
                        AVInputFormat *fmt,
-                       int buf_size,
-                       AVFormatParameters *ap)
-    int av_find_stream_info(AVFormatContext *ic)
+                       AVDictionary **options)
+    int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
 
-    void dump_format(AVFormatContext *ic,
+    void av_dump_format(AVFormatContext *ic,
                  int index,
                  char *url,
                  int is_output)
@@ -268,13 +267,11 @@ cdef extern from "libavformat/avformat.h":
     void av_parser_close(AVCodecParserContext *s)
 
     int av_index_search_timestamp(AVStream *st, int64_t timestamp, int flags)
-    void av_close_input_file(AVFormatContext *s)
-
+    void avformat_close_input(AVFormatContext **s)
 
 cdef extern from "libavformat/avio.h":
     int url_ferror(ByteIOContext *s)
     int url_feof(ByteIOContext *s)
-
 
 cdef extern from "libswscale/swscale.h":
     int SWS_FAST_BILINEAR
@@ -284,11 +281,13 @@ cdef extern from "libswscale/swscale.h":
     struct SwsVector:
         double *coeff
         int length
+
     struct SwsFilter:
         SwsVector *lumH
         SwsVector *lumV
         SwsVector *chrH
         SwsVector *chrV
+
     struct SwsContext:
         pass
 
@@ -299,5 +298,3 @@ cdef extern from "libswscale/swscale.h":
 
     int sws_scale(SwsContext *context, uint8_t* src[], int srcStride[], int srcSliceY,
                     int srcSliceH, uint8_t* dst[], int dstStride[]) nogil
-
-

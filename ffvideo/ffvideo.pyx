@@ -135,16 +135,16 @@ cdef class VideoStream:
         self.frame_mode = frame_mode
         self.scale_mode = scale_mode
 
-        ret = av_open_input_file(&self.format_ctx, filename, NULL, 0, NULL)
+        ret = avformat_open_input(&self.format_ctx, filename, NULL, NULL)
         if ret != 0:
             raise DecoderError("Unable to open file %s" % filename)
 
-        ret = av_find_stream_info(self.format_ctx)
+        ret = avformat_find_stream_info(self.format_ctx, NULL)
         if ret < 0:
             raise DecoderError("Unable to find stream info: %d" % ret)
 
         for i in xrange(self.format_ctx.nb_streams):
-            if self.format_ctx.streams[i].codec.codec_type == CODEC_TYPE_VIDEO:
+            if self.format_ctx.streams[i].codec.codec_type == AVMEDIA_TYPE_VIDEO:
                 self.streamno = i
                 break
         else:
@@ -171,11 +171,11 @@ cdef class VideoStream:
         self.height = self.codec_ctx.height
 
         # Open codec
-        ret = avcodec_open(self.codec_ctx, self.codec)
+        ret = avcodec_open2(self.codec_ctx, self.codec, NULL)
         if ret < 0:
             raise DecoderError("Unable to open codec")
 
-        # for some videos, avcodec_open will set these to 0,
+        # for some videos, avcodec_open2 will set these to 0,
         # so we'll only be using it if it is not 0, otherwise,
         # we rely on the resolution provided by the header;
         if self.codec_ctx.width != 0 and self.codec_ctx.height !=0:
@@ -203,13 +203,12 @@ cdef class VideoStream:
             avcodec_close(self.codec_ctx)
             self.codec_ctx = NULL
         if self.format_ctx:
-            av_close_input_file(self.format_ctx)
-            self.format_ctx = NULL
+            avformat_close_input(&self.format_ctx)
 
     def dump(self):
         print "max_b_frames=%s" % self.codec_ctx.max_b_frames
         av_log_set_level(AV_LOG_VERBOSE);
-        dump_format(self.format_ctx, 0, self.filename, 0);
+        av_dump_format(self.format_ctx, 0, self.filename, 0);
         av_log_set_level(AV_LOG_ERROR);
 
     def __decode_next_frame(self):
@@ -224,9 +223,8 @@ cdef class VideoStream:
 
             if self.packet.stream_index == self.streamno:
                 with nogil:
-                    ret = avcodec_decode_video(self.codec_ctx, self.frame,
-                                               &frame_finished,
-                                               self.packet.data, self.packet.size)
+                    ret = avcodec_decode_video2(self.codec_ctx, self.frame,
+                                               &frame_finished, &self.packet)
                 if ret < 0:
                     av_free_packet(&self.packet)
                     raise IOError("Unable to decode video picture: %d" % ret)
