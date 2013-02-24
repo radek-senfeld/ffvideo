@@ -8,8 +8,8 @@ In Ubuntu you can install the above using the following commands::
 
     sudo aptitude install python-dev cython libavcodec-dev libavformat-dev libswscale-dev
 
-    tar -xf FFVideo-0.0.12.tar.gz
-    cd FFVideo-0.0.12
+    tar -xf FFVideo-0.0.13.tar.gz
+    cd FFVideo-0.0.13
     python setup.py install
 
 or::
@@ -30,6 +30,7 @@ Getting thumnails or videostream info
         print '-' * 20
         print "codec: %s" % vs.codec_name
         print "duration: %.2f" % vs.duration
+        print "bit rate: %d" % vs.bitrate
         print "frame size: %dx%d" % (vs.frame_width, vs.frame_height)
         print "frame_mode: %s" % vs.frame_mode
 

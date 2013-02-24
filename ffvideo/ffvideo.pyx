@@ -72,6 +72,7 @@ cdef class VideoStream:
     cdef readonly object filename
     cdef readonly object codec_name
 
+    cdef readonly int bitrate # the average bitrate 
     cdef readonly double framerate
     cdef readonly double duration
     cdef readonly int width
@@ -191,6 +192,7 @@ cdef class VideoStream:
             self.frame_size = frame_size
 
         self.codec_name = self.codec.name
+        self.bitrate = self.format_ctx.bit_rate
 
         self.__decode_next_frame()
 

@@ -104,3 +104,7 @@ def test_frames_iterator():
     frame = frame_iter.next()
     assert frame.timestamp == 0
 
+def test_bitrate():
+    from ffvideo import VideoStream
+    vs = VideoStream(v0)
+    assert vs.bitrate == 8000
