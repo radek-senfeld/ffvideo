@@ -1,21 +1,25 @@
-FFVideo
-=======
+FFVideo - Python FFmpeg extension
+=================================
+
+Based on https://bitbucket.org/zakhar/ffvideo/
 
 Installation
 ------------
+
+In CentOS you can install the above using the following commands::
+
+    sudo rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro
+    sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-1.el7.nux.noarch.rpm
+    sudo yum install -y ffmpeg-devel libjpeg-turbo-devel
+
+    pip install Cython Pillow numpy
+    pip install git+https://github.com/radek-senfeld/ffvideo.git#egg=ffvideo
 
 In Ubuntu you can install the above using the following commands::
 
     sudo aptitude install python-dev cython libavcodec-dev libavformat-dev libswscale-dev
 
-    tar -xf FFVideo-0.0.13.tar.gz
-    cd FFVideo-0.0.13
-    python setup.py install
-
-or::
-
-    sudo aptitude install python-dev cython libavcodec-dev libavformat-dev libswscale-dev python-pip
-    pip install ffvideo
+    pip install git+https://github.com/radek-senfeld/ffvideo.git#egg=ffvideo
 
 How to use
 ----------
@@ -60,4 +64,3 @@ Iterating over frame sequence
 
     for frame in VideoStream('0.flv'):
         print frame.timestamp
-
